@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
+
+const Order = require('../models/orders');
 
 router.get('/', (req, res, next) => {
 	res.status(200).json({
@@ -7,16 +10,25 @@ router.get('/', (req, res, next) => {
 	})
 });
 
-router.post('/', (req, res, next) => {
-	const order = {
-		productId: req.body.productId,
-		quantity: req.body.quantity
+router.post('/', async (req, res, next) => {
+	// creating new Order from Order model 
+	const order = new Order({
+		// if invoked as a function .ObcjectId() returns new _id
+		_id: mongoose.Types.ObjectId(),
+		quantity: req.body.quantity,
+		product: req.body.productId 
+	});
+	try {
+		await order.save();
+		res.status(201).json({
+			message: 'Orders were posted!',
+			order: order
+		});
+	} catch(err) {
+		res.status(500).json({
+			error: err
+		})
 	}
-	// 201: resource fetched succesfully
-	res.status(201).json({
-		message: 'Orders were posted!',
-		order: order
-	})
 });
 
 
