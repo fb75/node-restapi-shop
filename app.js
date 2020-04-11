@@ -6,8 +6,6 @@ const mongoose = require('mongoose');
 
 const productRoutes = require('./api/routes/products');
 const orderRoutes = require('./api/routes/orders');
-
-// mongodb atlas api-key: 189d2f71-cdaf-40d7-a46d-42ba1df2d579
 const uri = 'mongodb+srv://fbrac-mongodb:'+ process.env.MONGODB_ATLAS_PWD +'@cluster0-xhnss.mongodb.net/test?retryWrites=true&w=majority';
 mongoose.connect(uri, {
 	useNewUrlParser: true,
