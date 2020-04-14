@@ -6,6 +6,8 @@ const mongoose = require('mongoose');
 
 const productRoutes = require('./api/routes/products');
 const orderRoutes = require('./api/routes/orders');
+const userRoutes = require('./api/routes/user');
+
 const uri = 'mongodb+srv://fbrac-mongodb:'+ process.env.MONGODB_ATLAS_PWD +'@cluster0-xhnss.mongodb.net/test?retryWrites=true&w=majority';
 mongoose.connect(uri, {
 	useNewUrlParser: true,
@@ -25,6 +27,7 @@ app.use(bodyParser.json());
 // using custom routes as middleware  to handle requests
 app.use('/products', productRoutes);
 app.use('/orders', orderRoutes);
+app.use('/user', userRoutes);
 
 
 // using middleware to set custom header preventing from server side the CORS check on the client
