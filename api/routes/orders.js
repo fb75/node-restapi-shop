@@ -3,50 +3,121 @@ const router = express.Router();
 const mongoose = require('mongoose');
 
 const Order = require('../models/orders');
+const Product = require('../models/products');
 
-router.get('/', (req, res, next) => {
-	res.status(200).json({
-		message: 'Orders were fetched!'
-	})
+router.get('/', async (req, res, next) => {
+	try {
+		const orders = await Order.find().select('product quantity _id').populate('product', 'name');
+		res.status(200).json({
+			count: orders.length,
+			orders: orders.map(order => {
+				return {
+					_id: order._id,
+					product: order.product,
+					quantity: order.quantity,
+					request: {
+						type: 'GET',
+						url: 'http://localhost:3000/orders/' + order._id
+					}
+				};
+			})
+		});
+	} catch(err) {
+		res.status(500).json({error: err})
+	};
 });
 
 router.post('/', async (req, res, next) => {
+	try {
+		product = await Product.findById(req.body.productId);
+		console.log('product found: ' + product);
+	} catch(err) {
+			res.status(500).json({
+			message: '500 - Unable to get pruductId.'
+		})
+	}
 	// creating new Order from Order model 
 	const order = new Order({
 		// if invoked as a function .ObcjectId() returns new _id
 		_id: mongoose.Types.ObjectId(),
 		quantity: req.body.quantity,
-		product: req.body.productId 
+		product: product 
 	});
 	try {
 		await order.save();
 		res.status(201).json({
-			message: 'Orders were posted!',
+			message: '201 - Order created correctly.',
 			order: order
 		});
 	} catch(err) {
 		res.status(500).json({
+			message: '500 - Error occurred saving order.',
+			error: err
+		})
+	};
+});
+
+router.get('/:orderId', async (req, res, next) => {
+	const id = req.params.orderId;
+	try {
+		let order = await Order.findById({_id: id}).select('_id product quantity').populate('product');
+		if(!order) {
+			return res.status(404).json({
+				message: '404 - Order not found'
+			})
+		}
+		res.status(200).json({
+			message: `Order ${id} fetched correctly.`,
+			order,
+			request: {
+				type: 'GET',
+				url: 'http://localhost/orders/'
+			}
+		})
+	} catch(err) {
+		res.status(404).json({
+			message: '500 - Error occurred fetching order',
 			error: err
 		})
 	}
 });
 
-
-router.get('/:orderId', (req, res, next) => {
-	// 201: resource fetched succesfully
-	res.status(200).json({
-		message: `Order id fetched!`,
-		orderId: req.params.orderId
-	})
+router.delete('/:orderId', async (req, res, next) => {
+	const id = req.params.orderId;
+	try {
+		let order = await Order.deleteOne({_id: id});
+		res.status(200).json({
+			messsage: `200 - Order id:${id} deleted correctly...`,
+			request: {
+				type: 'POST',
+				url: 'http://localhost:3000/orders/'
+			}
+		});
+	} catch(err) {
+		res.status(500).json({
+			message: '500 - Error occurred deleting order'
+		});
+	};
 });
 
-router.delete('/:orderId', (req, res, next) => {
-	// 201: resource fetched succesfully
-	res.status(200).json({
-		message:'Order id deleted!',
-		orderId: req.params.orderId
-	})
+router.put('/:orderId', async (req, res, next) => {
+	const id = req.params.orderId;
+	try {
+		let updatedOrder = await Order.updateOne({quantity: req.body.quantity, product: req.body.product});
+		res.status(200).json({
+			message: `200 - Order ${id} updated successfully`,
+			order: {
+				_id: updatedOrder._id,
+				product: updatedOrder.product,
+				quantity: updatedOrder.quantity
+			}
+		});
+	} catch(err) {
+		res.status(500).json({
+			message: '500 - Error occurred when updating order',
+			error: err
+		})
+	}
 });
-
 
 module.exports = router;

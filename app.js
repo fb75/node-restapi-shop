@@ -16,6 +16,8 @@ mongoose.connect(uri, {
 
 // setting middleware to log requests prints to console GET request name duration ms
 app.use(morgan('dev'));
+// using middleware to make accessible as static content only /uploads route
+app.use('/uploads', express.static('uploads'));
 // middleware bodyParser to parse the body of requests: for urlencoded (extended if true also rich-text bodies), json
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
