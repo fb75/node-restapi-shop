@@ -138,9 +138,8 @@ router.patch('/:productId', async (req, res, next) => {
 });
 
 router.delete('/:productId', async (req, res, next) => {
-	const id = req.params.productId;
 	try {
-		await Product.deleteOne({_id: id});
+		await Product.deleteOne({_id: req.params.productId});
 		res.status(200).json({
 			messsage: `Product id:${id} deleted correctly...`
 		});
