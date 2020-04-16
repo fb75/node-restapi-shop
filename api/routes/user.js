@@ -29,8 +29,8 @@ router.post('/signup', async (req, res, next) => {
 							user
 						});
 					} catch(err) {
-						res.status(400).json({
-							message: '400 - Bad request'
+						return res.status(500).json({
+							message: '500 - Internal server error'
 						})
 					};
 				};		
@@ -41,7 +41,7 @@ router.post('/signup', async (req, res, next) => {
 			});
 		};
 	} catch(err) {
-		res.status(500).json({
+		return res.status(500).json({
 			message: 'Error occurred fetching user.',
 			error: err
 		})
@@ -65,7 +65,7 @@ router.post('/login', async (req, res, next) => {
 					}
 			  );
 				return res.status(200).json({
-					message: '200 - Auth ok.',
+					message: '200 - Auth successfull.',
 					token: token
 				});
 			} else {
@@ -79,8 +79,8 @@ router.post('/login', async (req, res, next) => {
 			})
 		}
 	} catch(err) {
-		return res.status(401).json({
-			message: '401 - Something went wrong.'
+		return res.status(400).json({
+			message: '400 - Bad request.'
 		})
 	};
 });
@@ -88,21 +88,25 @@ router.post('/login', async (req, res, next) => {
 router.delete('/:userId', async (req, res, next) => {
 	try {
 		const user = await User.findOne({_id: req.params.userId});
-		if(user) {
+		if(user != null) {
 			try {
 				await User.deleteOne({_id: req.params.userId});
-				res.status(200).json({
-					messsage: `200 - User deleted correctly.`
+				return res.status(200).json({
+					messsage: `200 - User deleted successfully.`
 				});
 			} catch(err) {
-				res.status(500).json({
-					message: '500 - Error occurred deleting user',
+				return res.status(500).json({
+					message: '500 - Internal server error',
 					error: err
 				})
 			}
+		} else {
+			return res.status(401).json({
+				messsage: '400 - Bad request'
+			})
 		}
 	} catch(err) {
-		return res.status(404).json({
+		return res.status(400).json({
 			message: '400 - Bad request'
 		})
 	} 
