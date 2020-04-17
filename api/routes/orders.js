@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const checkAuth = require('../middleware/check-auth');
 
 const Order = require('../models/orders');
 const Product = require('../models/products');
 
-router.get('/', async (req, res, next) => {
+router.get('/', checkAuth, async (req, res, next) => {
 	try {
 		const orders = await Order.find().select('product quantity _id').populate('product', 'name');
 		res.status(200).json({
@@ -27,7 +28,7 @@ router.get('/', async (req, res, next) => {
 	};
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', checkAuth, async (req, res, next) => {
 	try {
 		product = await Product.findById(req.body.productId);
 		console.log('product found: ' + product);
@@ -57,7 +58,7 @@ router.post('/', async (req, res, next) => {
 	};
 });
 
-router.get('/:orderId', async (req, res, next) => {
+router.get('/:orderId', checkAuth, async (req, res, next) => {
 	const id = req.params.orderId;
 	try {
 		let order = await Order.findById({_id: id}).select('_id product quantity').populate('product');
@@ -66,7 +67,7 @@ router.get('/:orderId', async (req, res, next) => {
 				message: '404 - Order not found'
 			})
 		}
-		res.status(200).json({
+		return res.status(200).json({
 			message: `Order ${id} fetched correctly.`,
 			order,
 			request: {
@@ -75,7 +76,7 @@ router.get('/:orderId', async (req, res, next) => {
 			}
 		})
 	} catch(err) {
-		res.status(404).json({
+		return res.status(404).json({
 			message: '500 - Error occurred fetching order',
 			error: err
 		})
@@ -86,7 +87,7 @@ router.delete('/:orderId', async (req, res, next) => {
 	const id = req.params.orderId;
 	try {
 		let order = await Order.deleteOne({_id: id});
-		res.status(200).json({
+		return res.status(200).json({
 			messsage: `200 - Order id:${id} deleted correctly...`,
 			request: {
 				type: 'POST',
@@ -94,17 +95,17 @@ router.delete('/:orderId', async (req, res, next) => {
 			}
 		});
 	} catch(err) {
-		res.status(500).json({
+		return res.status(500).json({
 			message: '500 - Error occurred deleting order'
 		});
 	};
 });
 
-router.put('/:orderId', async (req, res, next) => {
+router.put('/:orderId', checkAuth, async (req, res, next) => {
 	const id = req.params.orderId;
 	try {
 		let updatedOrder = await Order.updateOne({quantity: req.body.quantity, product: req.body.product});
-		res.status(200).json({
+		return res.status(200).json({
 			message: `200 - Order ${id} updated successfully`,
 			order: {
 				_id: updatedOrder._id,
@@ -113,7 +114,7 @@ router.put('/:orderId', async (req, res, next) => {
 			}
 		});
 	} catch(err) {
-		res.status(500).json({
+		return res.status(500).json({
 			message: '500 - Error occurred when updating order',
 			error: err
 		})

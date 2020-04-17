@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const Product = require('../models/products');
 // using multer for parsing formadata encoded bodies
 const multer = require('multer');
+const checkAuth = require('../middleware/check-auth');
 
 // creating multer storage strategy 
 const storage = multer.diskStorage({
@@ -32,53 +34,46 @@ const upload = multer({
 	}
 });
 
-const Product = require('../models/products');
-
-router.get('/', (req, res, next) => {
-	// .find() returns all data without args
-	Product.find()
-	.select('name price _id productImage')
-	.exec()
-	.then(docs => {
-		const response = {
-			count: docs.length,
-			products: docs.map(doc => {
-				return {
-					name: doc.name,
-					price: doc.price,
-					_id: doc._id,
-					productImage: doc.productImage,
-					request: {
-						type: 'GET',
-						url: 'http://localhost:3000/products/' + doc._id
+router.get('/', async (req, res, next) => {
+	try {
+		const products = await Product.find().select('name price _id productImage').exec();
+		if(products.length >= 1) {
+			const response = {
+				count: products.length,
+				products: products.map(product => {
+					return {
+						name: product.name,
+						price: product.price,
+						_id: product._id,
+						productImage: product.productImage,
+						request: {
+							type: 'GET',
+							url: 'http://localhost:3000/products/' + product._id
+						}
 					}
-				}
-			})
+				})
+			}
+			return res.status(200).json({message: '200 - Products found.', response});
+		} else {
+			return res.status(404).json({messsage: '404 - Not Found.'});
 		}
-		console.log(docs); // [doc1, doc2, etc] or []
-		res.status(200).json(response);
-		// docs.length > 0 ? res.status(200).json(docs) : res.status(404).json({ message: '404 No docs founnd'});
-	})
-	.catch(err => {
-		console.log(err);
-		res.status(500).json({
-			error: err
-		});
-	});
+	} catch(err) {
+		return res.status(500).json({messsage: '500 - Internal server error.'});
+	};
 });
+	
 
-router.post('/', upload.single('productImage'), (req, res, next) => {
-	console.log(req.file);
-	const product = new Product({
-		_id: new mongoose.Types.ObjectId(),
-		name: req.body.name,
-		price: req.body.price,
-		productImage: req.file.path
-	});
-	product.save().then(result => {
-		console.log(result)
-		res.status(201).json({
-			message: '[POST /] - Product written on MongDb-Cloud ATLAS correctly...',
+router.post('/', checkAuth, upload.single('productImage'), async (req, res, next) => {
+	try {
+		const product = new Product({
+			_id: new mongoose.Types.ObjectId(),
+			name: req.body.name,
+			price: req.body.price,
+			productImage: req.file.path
+		});	
+		await product.save();
+		return res.status(201).json({
+			message: '200 - Product saved correctly...',
 			createdProduct: {
 				name: result.name,
 				price: result.price,
@@ -90,61 +85,63 @@ router.post('/', upload.single('productImage'), (req, res, next) => {
 				}
 			}
 		});
-	})
-	.catch(err => {
-		res.status(500).json({ 
+	} catch(err) {
+		return res.status(500).json({ 
+				messsage: '500 - Internal server error',
 				error: err
 		});
-	});
-});
-
-router.get('/:productId', (req, res, next) => {
-	const id = req.params.productId;
-	Product.findById(id)
-	.select('name price _id productImage')
-	.exec()
-	.then(doc => {
-		console.log('from database', doc);
-		if(doc) {
-			res.status(200).json({
-				product: doc,
-				request: {
-					type: 'GET',
-					url: 'htpp://localhost/products' + doc._id
-				}
-			});
-			next();
-		} else {
-			res.status(404).json({
-				message: '404 - ID not found'
-			});
-		}
-	})
-	.catch(err => {
-		res.status(500).json({error: err});
-	});
-});
-
-router.patch('/:productId', async (req, res, next) => {
-	const id = req.params.productId;
-	try {
-		let updateProduct = await Product.updateOne({name: req.body.name});
-		res.status(200).json({
-			message: `[/PATCH Updated product id:${id} successfully]\`- lines updated on document:${updateProduct.n} lines updated`,
-			updateProduct});
-	} catch(err) {
-		res.status(500).json({error: err})
 	}
 });
 
-router.delete('/:productId', async (req, res, next) => {
+
+
+router.get('/:productId', async (req, res, next) => {
 	try {
-		await Product.deleteOne({_id: req.params.productId});
-		res.status(200).json({
-			messsage: `Product id:${id} deleted correctly...`
-		});
+		const product = await Product.findById(req.params.productId).select('name price _id productImage');
+		if(product != null) {
+			return res.status(200).json({
+				product: product,
+				request: {
+					type: 'GET',
+					url: 'htpp://localhost/products/' + product._id
+				}
+			});
+		} else {
+			return res.status(404).json({
+				messsage: '404 - Product not found.'
+			})
+		};
 	} catch(err) {
-		res.status(500).json({
+		return res.status(500).json({
+			messsage: '500 - Internal server error'
+		})
+	};
+});
+
+router.patch('/:productId', checkAuth, async (req, res, next) => {
+	const id = req.params.productId;
+	try {
+		let updateProduct = await Product.updateOne({name: req.body.name});
+		return res.status(200).json({
+			message: `200 - Updated product id:${id} successfully]\`- lines updated on document:${updateProduct.n} lines updated`,
+			updateProduct});
+	} catch(err) {
+		return res.status(500).json({error: err})
+	}
+});
+
+router.delete('/:productId', checkAuth, async (req, res, next) => {
+	const id = req.params.productId;
+	try {
+		let product = await Product.deleteOne({_id: id});
+		console.log(product);
+		if(product) {
+			return res.status(200).json({
+				messsage: `Product id:${id} deleted correctly...`
+			});
+		}
+	} catch(err) {
+		return res.status(500).json({
 			error: err
 		})
 	}
