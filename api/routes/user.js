@@ -11,8 +11,7 @@ router.post('/signup', async (req, res, next) => {
 	try {
 		const user = await User.find({email: req.body.email}).exec();
 		const userName = await User.find({name: req.body.name}).exec();
-		console.log(user);
-
+	
 		// user and userName are []
 		if(userName.length > 0) return res.status(401).json({
 			message: 'Name already in use.'

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Product = require('./products');
 
 // creates model for Order including reference to model Product 
 const orderSchema = mongoose.Schema({
